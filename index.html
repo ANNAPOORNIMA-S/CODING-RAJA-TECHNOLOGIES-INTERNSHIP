@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation System</title>
+</head>
+<body>
+    <h1>Movie Recommendation System</h1>
+
+    <form id="recommendationForm">
+        <label for="userId">Enter User ID:</label>
+        <input type="text" id="userId" name="userId" required>
+        
+        <label for="numberOfMovies">Number of Recommendations (optional):</label>
+        <input type="number" id="numberOfMovies" name="numberOfMovies" min="1" value="5">
+
+        <button type="button" onclick="getRecommendations()">Get Recommendations</button>
+    </form>
+
+    <h2>Top Movie Recommendations</h2>
+    <ul id="recommendationsList"></ul>
+
+    <script>
+        function getRecommendations() {
+            const userId = document.getElementById('userId').value;
+            const numberOfMovies = document.getElementById('numberOfMovies').value || 5;
+
+            fetch(`http://127.0.0.1:5000/recommend?user_id=${userId}&n=${numberOfMovies}`)
+                .then(response => response.json())
+                .then(data => displayRecommendations(data.top_movies));
+        }
+
+        function displayRecommendations(recommendations) {
+            const recommendationsList = document.getElementById('recommendationsList');
+            recommendationsList.innerHTML = '';
+
+            recommendations.forEach(movie => {
+                const listItem = document.createElement('li');
+                listItem.textContent = movie;
+                recommendationsList.appendChild(listItem);
+            });
+        }
+    </script>
+</body>
+</html>

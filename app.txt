@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
+from flask import Flask, jsonify, request
+import pandas as pd
+from surprise import SVD, Reader, Dataset
+import joblib
+
+app = Flask(__name__)
+
+# Load the saved model
+model_filename = 'collaborative_filtering_model.pkl'
+algo = joblib.load(model_filename)
+
+# Load the data for movie information
+data = pd.read_csv('movies.csv')
+
+# Define the reader and dataset for Surprise
+reader = Reader(rating_scale=(0, 5))
+data_surprise = Dataset.load_from_df(data[['movieId', 'title', 'Ratings']], reader)
+
+# Build the trainset from the entire dataset
+trainset = data_surprise.build_full_trainset()
+algo.fit(trainset)
+
+@app.route('/recommend', methods=['GET'])
+def recommend():
+    user_id = int(request.args.get('user_id'))
+    n = int(request.args.get('n', 5))
+
+    # Get unrated movies for the user
+    list_of_movies = data['movieId'].unique()
+    user_unrated_movies = [movie for movie in list_of_movies if movie not in trainset.ur[user_id]]
+
+    # Predict ratings for unrated movies
+    predictions = [algo.predict(user_id, movie) for movie in user_unrated_movies]
+
+    # Get top-N predictions
+    top_predictions = sorted(predictions, key=lambda x: x.est, reverse=True)[:n]
+    top_movie_ids = [pred.iid for pred in top_predictions]
+    top_movie_titles = [data.loc[data['movieId'] == movie, 'title'].values[0] for movie in top_movie_ids]
+
+    return jsonify({'user_id': user_id, 'top_movies': top_movie_titles})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
